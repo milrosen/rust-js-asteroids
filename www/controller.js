@@ -6,13 +6,13 @@ export class Controller {
 		console.log(this.movement);
 
 		window.addEventListener("keydown", ({ key }) => {
-			if (key.match(/W|w/)) {
+			if (key === 'W' || key === 'w' || key === 'ArrowUp') {
 				this.movement.boost = true;
 			}
-			if (key.match(/A|a/)) {
+			if (key === 'A' || key === 'a' || key === 'ArrowLeft') {
 				this.movement.left = true;
 			}
-			if (key.match(/D|d/)) {
+			if (key === 'D' || key === 'd' || key === 'ArrowRight') {
 				this.movement.right = true;
 			}
 			if (key.match(/ /)) {
@@ -21,13 +21,13 @@ export class Controller {
 		})
 
 		window.addEventListener("keyup", ({ key }) => {
-			if (key.match(/W|w/)) {
+			if (key === 'W' || key === 'w' || key === 'ArrowUp') {
 				this.movement.boost = false;
 			}
-			if (key.match(/A|a/)) {
+			if (key === 'A' || key === 'a' || key === 'ArrowLeft') {
 				this.movement.left = false;
 			}
-			if (key.match(/D|d/)) {
+			if (key === 'D' || key === 'd' || key === 'ArrowRight') {
 				this.movement.right = false;
 			}
 			if (key.match(/ /)) {
