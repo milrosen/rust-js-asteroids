@@ -184,6 +184,56 @@ impl Bullet {
 	}
 }
 
+pub struct Explosion {
+	pub loc: Vector,
+	pub time: u32,
+	pub shape: Vec<f64>,
+}
+
+impl Explosion {
+	pub fn new(loc: Vector) -> Explosion {
+		let mut rng = rand::thread_rng();
+		let shape = [0.0; 6]
+			.iter()
+			.map(|vert| vert + rng.gen_range(0.0, PI / 3.0))
+			.collect();
+
+		Explosion {
+			loc: loc,
+			time: 0,
+			shape: shape,
+		}
+	}
+	pub fn update(&mut self) {
+		self.time += 1;
+	}
+	pub fn render(&self, ctx: &CanvasRenderingContext2d) {
+		ctx.save();
+		ctx.set_stroke_style(&JsValue::from("#ffffff"));
+		ctx.translate(self.loc.x, self.loc.y).unwrap();
+		ctx.begin_path();
+
+		// ctx.move_to(4.0, 0.0);
+		// ctx.line_to(self.shape[0] + (self.time as f64) * 4.0, 0.0);
+		for (i, vert) in self.shape.iter().enumerate() {
+			let vertex = Vector::from_polar(
+				*vert + self.time as f64 * 3.5,
+				PI * 2.0 * i as f64 / self.shape.len() as f64 + vert,
+			);
+			let vertex2 = Vector::from_polar(
+				*vert + (self.time as f64) * 4.0,
+				PI * 2.0 * i as f64 / self.shape.len() as f64 + vert,
+			);
+			ctx.move_to(vertex.x, vertex.y);
+			ctx.line_to(vertex2.x, vertex2.y);
+		}
+
+		ctx.close_path();
+		ctx.stroke();
+		ctx.restore();
+	}
+}
+
 #[wasm_bindgen]
 pub struct Movement {
 	pub left: bool,
@@ -289,6 +339,7 @@ pub struct Game {
 	pub height: f64,
 	asteroids: Vec<Asteroid>,
 	bullets: Vec<Bullet>,
+	explosions: Vec<Explosion>,
 	pub score: i32,
 	pub lives: i32,
 	ship: Ship,
@@ -310,6 +361,7 @@ impl Game {
 			height: screen_height,
 			asteroids: asteroids,
 			bullets: Vec::new(),
+			explosions: Vec::new(),
 			score: 0,
 			lives: 3,
 			ship: Ship {
@@ -346,6 +398,7 @@ impl Game {
 		let mut new_asteroids = Vec::new();
 		let mut remove_asteroid_index: i32 = -1;
 		let mut remove_bullet_index: i32 = -1;
+		let mut remove_explosion_index: i32 = -1;
 
 		for asteroid in (&mut self.asteroids).iter_mut() {
 			asteroid.update(self.width, self.height);
@@ -355,6 +408,7 @@ impl Game {
 				self.ship.invulnerable_frames = 90;
 				self.lives -= 1;
 				if self.lives <= 0 {
+					self.explosions.push(Explosion::new(self.ship.loc));
 					self.score = 0;
 					self.ship.loc = Vector {
 						x: self.width / 2.0,
@@ -374,7 +428,9 @@ impl Game {
 							new_asteroids.push(asteroid1);
 							new_asteroids.push(asteroid2);
 						}
-						None => (),
+						None => {
+							self.explosions.push(Explosion::new(asteroid.loc));
+						},
 					};
 					self.score += 5;
 					remove_asteroid_index = i as i32;
@@ -387,6 +443,13 @@ impl Game {
 				|| bullet.loc.y > self.height
 			{
 				remove_bullet_index = j as i32;
+			}
+		}
+
+		for (i, explosion) in self.explosions.iter_mut().enumerate() {
+			explosion.time += 1;
+			if explosion.time >= 15 {
+				remove_explosion_index = i as i32;
 			}
 		}
 
@@ -410,6 +473,9 @@ impl Game {
 		if remove_bullet_index != -1 {
 			self.bullets.remove(remove_bullet_index as usize);
 		}
+		if remove_explosion_index != -1 {
+			self.explosions.remove(remove_explosion_index as usize);
+		}
 	}
 
 	pub fn render(&self, ctx: &CanvasRenderingContext2d) {
@@ -426,6 +492,10 @@ impl Game {
 
 		for bullet in &self.bullets {
 			bullet.render(ctx);
+		}
+
+		for explosion in &self.explosions {
+			explosion.render(ctx);
 		}
 
 		ctx.set_fill_style(&JsValue::from("#ffffff"));
